@@ -1,91 +1,211 @@
 #include "main.h"
+#include <stdarg.h>
+#include <stdint.h>
 /**
- * buffer - defines a local buffer of 1024 chars
- * @s: buffer
- * @x: char to be printed
- * @index: actual position on buffer
- * Return: return a function
+ * _withformat4 - prints depending the format
+ * @c: the format sent by the main
+ * @count: characters printed;
+ * @valist: va_list args
+ * Return: @count the number of characters printed
  */
-void buffer(char *s, char x, int *index)
+int _withformat4(char c, int count, va_list valist)
 {
-	s[*index] = x;
-	*index = *index + 1;
-	if (*index == 1024)
+	uintptr_t p;
+	void *pi;
+
+
+	switch (c)
 	{
-		write(1, s, *index);
-		*index = 0;
-	}
-}
-/**
- * getfunction - gets the function choose
- * @c: char to find
- * Return: return a function
- */
-int (*getfunction(char c))(va_list a, char *s, int *index)
-{
-	int c1;
-	choose l[] = {
-		{'c', print_c}, {'s', print_s}, {'%', print_por}, {'i', print_id},
-		{'d', print_id}, {'b', print_bin}, {'u', print_u}, {'o', print_o},
-		{'x', print_x}, {'X', print_X}, {'S', print_S}, {'R', print_R},
-		{'r', print_r}, {'p', print_p}, {'\0', NULL}
-	};
-	for (c1 = 0; l[c1].c != '\0'; c1++)
-	{
-		if (c == l[c1].c)
+	case 'p':
+		pi = va_arg(valist, void *);
+		p = (uintptr_t)pi;
+
+		if (pi == NULL)
 		{
-			return (l[c1].p);
+			_printf("(nil)");
+			count += 5;
 		}
+		else
+		{
+			_putchar('0');
+			_putchar('x');
+			count += 2;
+			count += print_hl(p);
+		}
+		break;
+	default:
+		count += 2;
+		_putchar('%');
+		_putchar(c);
 	}
-	return (NULL);
+	return (count);
+}
+
+/**
+ * _withformat3 - prints depending the format
+ * @c: the format sent by the main
+ * @count: characters printed;
+ * @valist: va_list args
+ * Return: @count the number of characters printed
+ */
+int _withformat3(char c, int count, va_list valist)
+{
+	char *s;
+	int i;
+	char si[6] = "(null)";
+
+	switch (c)
+	{
+	case 'R':
+		s = va_arg(valist, char *);
+		if (!s)
+		{
+			for (i = 0; si[i]; i++, count++)
+				_putchar(si[i]);
+		}
+		else
+			count += rot13(s);
+		break;
+	case 'r':
+		s = va_arg(valist, char *);
+		if (!s)
+		{
+			for (i = 0; si[i]; i++, count++)
+				_putchar(si[i]);
+		}
+		else
+			count += print_rev(s);
+		break;
+		default:
+			count = _withformat4(c, count, valist);
+	}
+	return (count);
 }
 /**
- * _printf - prints depends of the arguments.
- * @format: s for string, c for char, d for decimals, i for integers,
- * b for cast to binary, u for cast to unsigned decimal, o for print
- * in octal, x for lowercase Hexadecimal, X for Uppercase Hexadecimal,
- * p to print adresses
- * Return: new string.
+ * _withformat2 - prints depending the format
+ * @c: the format sent by the main
+ * @count: characters printed;
+ * @valist: va_list args
+ * Return: @count the number of characters printed
+ */
+int _withformat2(char c, int count, va_list valist)
+{
+	unsigned int k;
+
+	switch (c)
+	{
+		case 'b':
+			k = va_arg(valist, unsigned int);
+
+			count += print_bi(k);
+			break;
+		case 'o':
+			k = va_arg(valist, unsigned int);
+
+			count += print_octal(k);
+			break;
+		case 'x':
+			k = va_arg(valist, unsigned int);
+
+			count += print_hexalow(k);
+			break;
+		case 'X':
+			k = va_arg(valist, unsigned int);
+
+			count += print_hexaup(k);
+			break;
+		case 'u':
+			k = va_arg(valist, unsigned int);
+
+			count += print_unsig(k);
+			break;
+		default:
+			count = _withformat3(c, count, valist);
+	}
+	return (count);
+}
+
+
+/**
+ * _withformat - prints depending the format
+ * @c: the format sent by the main
+ * @count: characters printed;
+ * @valist: va_list args
+ * Return: @count the number of characters printed
+ */
+
+int _withformat(char c, int count, va_list valist)
+{
+	int j, i;
+	char *s;
+	char si[6] = "(null)";
+
+	switch (c)
+	{
+		case 'c':
+			j = va_arg(valist, int);
+			count += _putchar(j);
+			break;
+		case 's':
+			s = va_arg(valist, char *);
+			if (!s)
+			{
+				for (i = 0; si[i]; i++, count++)
+					_putchar(si[i]);
+			}
+			else
+				count += _printstring(s);
+			break;
+		case '%':
+			count += _putchar('%');
+			break;
+		case 'i':
+		case 'd':
+			j = va_arg(valist, int);
+
+			if (!j)
+			{
+				count++;
+				_putchar('0');
+			} else
+				count += print_number(j);
+			break;
+		default:
+			count = _withformat2(c, count, valist);
+	}
+	return (count);
+}
+
+/**
+ * _printf - Fuction that prints to the std output
+ * @format: list of parameters passed
+ * Return: @count the number of characters printed
  */
 int _printf(const char *format, ...)
 {
-	int c1 = 0, w = 0, x = -1, (*f)(va_list, char *s, int *m);
-	int *index;
-	char *s;
-	va_list elements;
+	int i = 0;
+	int count = 0;
+	va_list valist;
 
-	va_start(elements, format);
-	s = malloc(1024);
-	index = &w;
-	if (!s)
+	va_start(valist, format);
+
+	if (!format)
 		return (-1);
-	if (format)
+	for (i = 0; format[i]; i++)
 	{
-		x = 0;
-		for (; format[c1] != '\0'; c1++, x++)
+		if (format[i] != '%')
 		{
-			if (format[c1] != '%')
-				buffer(s, format[c1], index);
-			else if (format[c1] == '%' && format[c1 + 1] == '\0')
-			{
-				return (-1);
-			}
-			else if (format[c1] == '%' && format[c1 + 1] != '\0')
-			{
-				f = getfunction(format[c1 + 1]);
-				if (f)
-				{
-					x = (x + f(elements, s, index)) - 1;
-					c1++;
-				}
-				else
-					buffer(s, format[c1], index);
-			}
+			count++;
+			_putchar(format[i]);
 		}
+		else if (format[i + 1])
+		{
+			i++;
+			count = _withformat(format[i], count, valist);
+		}
+		else
+			return (-1);
 	}
-	if (*index != 1024)
-		write(1, s, *index);
-	free(s);
-	va_end(elements);
-	return (x);
+	va_end(valist);
+	return (count);
 }
