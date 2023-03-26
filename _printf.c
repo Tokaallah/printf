@@ -1,211 +1,45 @@
 #include "main.h"
-#include <stdarg.h>
-#include <stdint.h>
 /**
- * _withformat4 - prints depending the format
- * @c: the format sent by the main
- * @count: characters printed;
- * @valist: va_list args
- * Return: @count the number of characters printed
+ * _printf - is a function that selects the correct function to print.
+ * @format: identifier to look for.
+ * Return: the length of the string.
  */
-int _withformat4(char c, int count, va_list valist)
+int _printf(const char * const format, ...)
 {
-	uintptr_t p;
-	void *pi;
+	convert_match m[] = {
+		{"%s", printf_string}, {"%c", printf_char},
+		{"%%", printf_37},
+		{"%i", printf_int}, {"%d", printf_dec}, {"%r", printf_srev},
+		{"%R", printf_rot13}, {"%b", printf_bin}, {"%u", printf_unsigned},
+		{"%o", printf_oct}, {"%x", printf_hex}, {"%X", printf_HEX},
+		{"%S", printf_exclusive_string}, {"%p", printf_pointer}
+	};
 
+	va_list args;
+	int i = 0, j, len = 0;
 
-	switch (c)
-	{
-	case 'p':
-		pi = va_arg(valist, void *);
-		p = (uintptr_t)pi;
-
-		if (pi == NULL)
-		{
-			_printf("(nil)");
-			count += 5;
-		}
-		else
-		{
-			_putchar('0');
-			_putchar('x');
-			count += 2;
-			count += print_hl(p);
-		}
-		break;
-	default:
-		count += 2;
-		_putchar('%');
-		_putchar(c);
-	}
-	return (count);
-}
-
-/**
- * _withformat3 - prints depending the format
- * @c: the format sent by the main
- * @count: characters printed;
- * @valist: va_list args
- * Return: @count the number of characters printed
- */
-int _withformat3(char c, int count, va_list valist)
-{
-	char *s;
-	int i;
-	char si[6] = "(null)";
-
-	switch (c)
-	{
-	case 'R':
-		s = va_arg(valist, char *);
-		if (!s)
-		{
-			for (i = 0; si[i]; i++, count++)
-				_putchar(si[i]);
-		}
-		else
-			count += rot13(s);
-		break;
-	case 'r':
-		s = va_arg(valist, char *);
-		if (!s)
-		{
-			for (i = 0; si[i]; i++, count++)
-				_putchar(si[i]);
-		}
-		else
-			count += print_rev(s);
-		break;
-		default:
-			count = _withformat4(c, count, valist);
-	}
-	return (count);
-}
-/**
- * _withformat2 - prints depending the format
- * @c: the format sent by the main
- * @count: characters printed;
- * @valist: va_list args
- * Return: @count the number of characters printed
- */
-int _withformat2(char c, int count, va_list valist)
-{
-	unsigned int k;
-
-	switch (c)
-	{
-		case 'b':
-			k = va_arg(valist, unsigned int);
-
-			count += print_bi(k);
-			break;
-		case 'o':
-			k = va_arg(valist, unsigned int);
-
-			count += print_octal(k);
-			break;
-		case 'x':
-			k = va_arg(valist, unsigned int);
-
-			count += print_hexalow(k);
-			break;
-		case 'X':
-			k = va_arg(valist, unsigned int);
-
-			count += print_hexaup(k);
-			break;
-		case 'u':
-			k = va_arg(valist, unsigned int);
-
-			count += print_unsig(k);
-			break;
-		default:
-			count = _withformat3(c, count, valist);
-	}
-	return (count);
-}
-
-
-/**
- * _withformat - prints depending the format
- * @c: the format sent by the main
- * @count: characters printed;
- * @valist: va_list args
- * Return: @count the number of characters printed
- */
-
-int _withformat(char c, int count, va_list valist)
-{
-	int j, i;
-	char *s;
-	char si[6] = "(null)";
-
-	switch (c)
-	{
-		case 'c':
-			j = va_arg(valist, int);
-			count += _putchar(j);
-			break;
-		case 's':
-			s = va_arg(valist, char *);
-			if (!s)
-			{
-				for (i = 0; si[i]; i++, count++)
-					_putchar(si[i]);
-			}
-			else
-				count += _printstring(s);
-			break;
-		case '%':
-			count += _putchar('%');
-			break;
-		case 'i':
-		case 'd':
-			j = va_arg(valist, int);
-
-			if (!j)
-			{
-				count++;
-				_putchar('0');
-			} else
-				count += print_number(j);
-			break;
-		default:
-			count = _withformat2(c, count, valist);
-	}
-	return (count);
-}
-
-/**
- * _printf - Fuction that prints to the std output
- * @format: list of parameters passed
- * Return: @count the number of characters printed
- */
-int _printf(const char *format, ...)
-{
-	int i = 0;
-	int count = 0;
-	va_list valist;
-
-	va_start(valist, format);
-
-	if (!format)
+	va_start(args, format);
+	if (format == NULL || (format[0] == '%' && format[1] == '\0'))
 		return (-1);
-	for (i = 0; format[i]; i++)
+
+Here:
+	while (format[i] != '\0')
 	{
-		if (format[i] != '%')
+		j = 13;
+		while (j >= 0)
 		{
-			count++;
-			_putchar(format[i]);
+			if (m[j].id[0] == format[i] && m[j].id[1] == format[i + 1])
+			{
+				len += m[j].f(args);
+				i = i + 2;
+				goto Here;
+			}
+			j--;
 		}
-		else if (format[i + 1])
-		{
-			i++;
-			count = _withformat(format[i], count, valist);
-		}
-		else
-			return (-1);
+		_putchar(format[i]);
+		len++;
+		i++;
 	}
-	va_end(valist);
-	return (count);
+	va_end(args);
+	return (len);
 }
